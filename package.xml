@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>imu_driver</name>
+  <name>jy901_driver</name>
   <version>0.1.0</version>
   <description>The imu_driver package</description>
 
@@ -8,7 +8,6 @@
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
   <maintainer email="guolindong@gmail.com">gld</maintainer>
-
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
@@ -47,7 +46,6 @@
   <run_depend>message_runtime</run_depend>
   <run_depend>rostime</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
-
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(imu_driver)
+project(jy901_driver)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -15,18 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   serial
 )
 
-
-
-#add_message_files(FILES
-#  JY901_frame.msg
-#  Mile.msg
-#  Control.msg
-#)
-
-#generate_messages(DEPENDENCIES
-#  std_msgs
-#)
-
 catkin_package(
  INCLUDE_DIRS src
  CATKIN_DEPENDS serial roscpp sensor_msgs tf
@@ -39,12 +27,11 @@ include_directories(
 	${catkin_INCLUDE_DIRS}
 )
 
-add_executable(imu_node
-  src/imu_decoder.cpp
+add_executable(jy901_driver_node
+  src/jy901_driver_node.cpp
 )
 
-target_link_libraries(imu_node
-  #serial
+target_link_libraries(jy901_driver_node
   ${catkin_LIBRARIES}
 )
 

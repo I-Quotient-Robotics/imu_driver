@@ -1,6 +1,6 @@
-<!-- imu_node launch file-->
+<?xml version="1.0"?>
 <launch>
-  <node pkg="imu_driver" type="imu_node" name="imu_node" output="screen" >
+  <node pkg="jy901_driver" type="jy901_driver_node" name="jy901_node" output="screen" >
 		<param name="baudrate" type="int" value="115200" />
 		<param name="port" type="string" value="/dev/ttyUSB0" />
 		<param name="looprate" type="int" value="100" />
