@@ -1,5 +1,5 @@
-#ifndef JY901_h
-#define JY901_h
+#ifndef JY901_H_
+#define JY901_H_
 
 #define SAVE        0x00
 #define CALSW       0x01
@@ -150,4 +150,4 @@ void CharToLong(char Dest[], char Source[]) {
   *(Dest+3) = Source[0];
 }
 
-#endif
+#endif // JY901_H_
