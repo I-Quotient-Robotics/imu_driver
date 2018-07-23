@@ -73,7 +73,7 @@
 #define DIO_MODE_GPS    5    
 
 struct STime {
-  unsigned char ucYear;
+  int ucYear;
   unsigned char ucMonth;
   unsigned char ucDay;
   unsigned char ucHour;
@@ -83,23 +83,23 @@ struct STime {
 };
 
 struct SAcc {
-  short a[3];
-  short T;
+  double a[3];
+  double T;
 };
 
 struct SGyro {
-  short w[3];
-  short T;
+  double w[3];
+  double T;
 };
 
 struct SAngle {
-  short Angle[3];
-  short T;
+  double Angle[3];
+  double T;
 };
 
 struct SMag {
-  short h[3];
-  short T;
+  double h[3];
+  double T;
 };
 
 struct SDStatus {
@@ -107,23 +107,30 @@ struct SDStatus {
 };
 
 struct SPress {
-  long lPressure;
-  long lAltitude;
+  double lPressure;
+  double lAltitude;
 };
 
 struct SLonLat {
-  long lLon;
-  long lLat;
+  double lLon;
+  double lLat;
 };
 
 struct SGPSV {
-  short sGPSHeight;
-  short sGPSYaw;
-  long lGPSVelocity;
+  double fGPSHeight;
+  double fGPSYaw;
+  double fGPSVelocity;
 };
 
 struct SOrien {
-  short q[4];
+  double q[4];
+};
+
+struct GPSStatus {
+  int sat_num;
+  double pdop;
+  double hdop;
+  double vdop;
 };
 
 class CJY901 {

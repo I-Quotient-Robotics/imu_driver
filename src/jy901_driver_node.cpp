@@ -5,10 +5,15 @@
  */
 
 #define Pi 3.14159265359
-
+#include <iostream>
 #include <ros/ros.h>
 #include <serial/serial.h>
+
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/MagneticField.h>
+
+#include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/NavSatStatus.h>
 
 #include "JY901.h"
 
@@ -22,36 +27,172 @@ struct SPress   stcPress;
 struct SLonLat  stcLonLat;
 struct SGPSV    stcGPSV;
 struct SOrien   stcOrien;
+struct GPSStatus stcGPSStatus;
+
+unsigned char chrTemp[5000];
+unsigned char ucRxCnt = 0;
+unsigned int usRxLength = 0;
+
+void DoParse() {
+  static int16_t temp_16;
+  static int32_t temp_32;
+
+  std::cout << std::fixed << std::setprecision(8);
+  switch(chrTemp[1]) {
+    case 0x50: {
+      stcTime.ucYear = static_cast<int>(chrTemp[2]) + 2000;
+      stcTime.ucMonth = chrTemp[3];
+      stcTime.ucDay = chrTemp[4];
+      stcTime.ucHour = chrTemp[5];
+      stcTime.ucMinute = chrTemp[6];
+      stcTime.ucSecond = chrTemp[7];
+      stcTime.usMiliSecond = (chrTemp[9]<<8)|chrTemp[8];
+
+      // std::cout << "Time: " << stcTime.ucYear << "-" << static_cast<int>(stcTime.ucMonth) << "-" << static_cast<int>(stcTime.ucDay) << " " << static_cast<int>(stcTime.ucHour) << ":" << static_cast<int>(stcTime.ucMinute) << ":" << static_cast<int>(stcTime.ucSecond) << ":" << static_cast<int>(stcTime.usMiliSecond) << std::endl;
+      break;
+    }
+    case 0x51: {
+      temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
+      stcAcc.a[0] = static_cast<double>(temp_16)/32768.0*16.0*9.80665;
+      temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
+      stcAcc.a[1] = static_cast<double>(temp_16)/32768.0*16.0*9.80665;
+      temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
+      stcAcc.a[2] = static_cast<double>(temp_16)/32768.0*16.0*9.80665;
+      temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
+      stcAcc.T = static_cast<double>(temp_16)/100.0;
+
+      // std::cout << "Temp: " << stcAcc.T << ", " << "Acc: " << stcAcc.a[0] << ", " << stcAcc.a[1] << ", " << stcAcc.a[2] << std::endl;
+      break;
+    }
+    case 0x52: {
+      temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
+      stcGyro.w[0] = static_cast<double>(temp_16)/32768.0*2000.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
+      stcGyro.w[1] = static_cast<double>(temp_16)/32768.0*2000.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
+      stcGyro.w[2] = static_cast<double>(temp_16)/32768.0*2000.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
+      stcAcc.T = static_cast<double>(temp_16)/100.0;
+
+      // std::cout << "Temp: " << stcGyro.T << ", " << "Gyro: " << stcGyro.w[0] << ", " << stcGyro.w[1] << ", " << stcGyro.w[2] << std::endl;
+      break;
+    }
+    case 0x53: {
+      temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
+      stcAngle.Angle[0] = static_cast<double>(temp_16)/32768.0*180.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
+      stcAngle.Angle[1] = static_cast<double>(temp_16)/32768.0*180.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
+      stcAngle.Angle[2] = static_cast<double>(temp_16)/32768.0*180.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
+      stcAngle.T = static_cast<double>(temp_16)/100.0;
+
+      // std::cout << "Temp: " << stcAngle.T << ", " << "Angle: " << stcAngle.Angle[0] << ", " << stcAngle.Angle[1] << ", " << stcAngle.Angle[2] << std::endl;
+      break;
+    }
+    case 0x54: {
+      temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
+      stcMag.h[0] = static_cast<double>(temp_16)/1000.0/10000.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
+      stcMag.h[1] = static_cast<double>(temp_16)/1000.0/10000.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
+      stcMag.h[2] = static_cast<double>(temp_16)/1000.0/10000.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
+      stcMag.T = static_cast<double>(temp_16)/100.0;
+
+      // std::cout << "Temp: " << stcMag.T << ", " << "Magnetic: " << stcMag.h[0] << ", " << stcMag.h[1] << ", " << stcMag.h[2] << std::endl;
+      break;
+    }
+    case 0x55: {
+      /* I/O value, not in use */
+      break;
+    }
+    case 0x56: {
+      temp_32 = (static_cast<int32_t>(chrTemp[5])<<24)|(static_cast<int32_t>(chrTemp[4])<<16)|(static_cast<int32_t>(chrTemp[3])<<8)|chrTemp[2];
+      stcPress.lPressure = static_cast<double>(temp_32);
+      temp_32 = (static_cast<int32_t>(chrTemp[9])<<24)|(static_cast<int32_t>(chrTemp[8])<<16)|(static_cast<int32_t>(chrTemp[7])<<8)|chrTemp[6];
+      stcPress.lAltitude = static_cast<double>(temp_32) / 100.0;
+
+      // std::cout << "Pressure: " << stcPress.lPressure << ", " << "Altitude: " << stcPress.lAltitude << std::endl;
+      break;
+    }
+    case 0x57: {
+      temp_32 = (static_cast<int32_t>(chrTemp[5])<<24)|(static_cast<int32_t>(chrTemp[4])<<16)|(static_cast<int32_t>(chrTemp[3])<<8)|chrTemp[2];
+      stcLonLat.lLon = temp_32/10000000 + (temp_32%10000000)/100000.0/60.0;
+      temp_32 = (static_cast<int32_t>(chrTemp[9])<<24)|(static_cast<int32_t>(chrTemp[8])<<16)|(static_cast<int32_t>(chrTemp[7])<<8)|chrTemp[6];
+      stcLonLat.lLat = temp_32/10000000 + (temp_32%10000000)/100000.0/60.0;
+      // std::cout << "GPS: " << stcLonLat.lLon << ", " << stcLonLat.lLat << std::endl;
+      break;
+    }
+    case 0x58: {
+      temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
+      stcGPSV.fGPSHeight = static_cast<double>(temp_16) / 10.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
+      stcGPSV.fGPSYaw = static_cast<double>(temp_16) / 10.0;
+      temp_32 = (static_cast<int32_t>(chrTemp[9])<<24)|(static_cast<int32_t>(chrTemp[8])<<16)|(static_cast<int32_t>(chrTemp[7])<<8)|chrTemp[6];
+      stcGPSV.fGPSVelocity = static_cast<double>(temp_32) / 1000.0;
+
+      // std::cout << "Height: " << stcGPSV.fGPSHeight << ", Yaw: " << stcGPSV.fGPSYaw << ", Velocity: " << stcGPSV.fGPSVelocity << std::endl;
+      break;
+    }
+    case 0x59: {
+      temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
+      stcOrien.q[0] = static_cast<double>(temp_16)/32768.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
+      stcOrien.q[1] = static_cast<double>(temp_16)/32768.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
+      stcOrien.q[2] = static_cast<double>(temp_16)/32768.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
+      stcOrien.q[3] = static_cast<double>(temp_16)/32768.0;
+
+      // std::cout << "Orientation: " << stcOrien.q[0] << ", " << stcOrien.q[1] << ", " << stcOrien.q[2] << ", " << stcOrien.q[3] << std::endl;
+      break;
+    }
+    case 0x5A: {
+      temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
+      stcGPSStatus.sat_num = static_cast<int>(temp_16);
+      temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
+      stcGPSStatus.pdop = static_cast<double>(temp_16)/100.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
+      stcGPSStatus.hdop = static_cast<double>(temp_16)/100.0;
+      temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
+      stcGPSStatus.vdop = static_cast<double>(temp_16)/100.0;
+
+      // std::cout << "Satellite number: " << stcGPSStatus.sat_num << ", Pdop:" << stcGPSStatus.pdop << ", Hdop:" << stcGPSStatus.hdop << ", Vdop:" << stcGPSStatus.vdop << std::endl;
+      break;
+    }
+  }
+}
 
 // convert serial data to jy901 data
 void CopeSerialData(std::string str_in) {
   unsigned int str_length = str_in.size();
-  static unsigned char chrTemp[2000];
-  static unsigned char ucRxCnt = 0;
-  static unsigned int usRxLength = 0;
 
+  static int sum;
   memcpy(chrTemp+usRxLength, str_in.data(), str_length);
   usRxLength += str_length;
   while (usRxLength >= 11) {
     if (chrTemp[0] != 0x55) {
       usRxLength--;
       memcpy(&chrTemp[0], &chrTemp[1], usRxLength);
-      continue;
+    } else {
+      sum = 0;
+      for(int i=0; i<10; i++) {
+        sum += chrTemp[i];
+      }
+      if((int(sum & 0x00ff)==int(chrTemp[10]))) {
+        DoParse();
+        usRxLength -= 11;
+        memcpy(&chrTemp[0], &chrTemp[11], usRxLength);
+
+        // std::cout << std::hex << static_cast<int>(sum & 0xff) << ", ";
+        // std::cout << std::hex << static_cast<int>(chrTemp[10]) << ", ";
+        // std::cout << std::hex << (int(sum & 0x00ff)==int(chrTemp[10])) << std::endl;
+      } else {
+        usRxLength--;
+        memcpy(&chrTemp[0], &chrTemp[1], usRxLength);
+      }
     }
-    switch(chrTemp[1]) {
-      case 0x50: memcpy(&stcTime, &chrTemp[2], 8); break;
-      case 0x51: memcpy(&stcAcc, &chrTemp[2], 8); break;
-      case 0x52: memcpy(&stcGyro, &chrTemp[2], 8); break;
-      case 0x53: memcpy(&stcAngle, &chrTemp[2], 8); break;
-      case 0x54: memcpy(&stcMag, &chrTemp[2], 8);break;
-      case 0x55: memcpy(&stcDStatus, &chrTemp[2], 8); break;
-      case 0x56: memcpy(&stcPress, &chrTemp[2], 8); break;
-      case 0x57: memcpy(&stcLonLat, &chrTemp[2], 8); break;
-      case 0x58: memcpy(&stcGPSV,&chrTemp[2], 8); break;
-      case 0x59: memcpy(&stcOrien, &chrTemp[2], 8); break;
-    }
-    usRxLength -= 11;
-    memcpy(&chrTemp[0], &chrTemp[11], usRxLength);
   }
 }
 
@@ -69,7 +210,7 @@ int main (int argc, char** argv) {
 
   // get param from launch file
   pnh.param<int>("baudrate", baudrate, 115200);
-  pnh.param<std::string>("port", port, "/dev/ttyUSB0");
+  pnh.param<std::string>("port", port, "/dev/jydriver");
   pnh.param<int>("looprate", looprate, 100);
 
   pnh.getParam("baudrate", baudrate);
@@ -82,6 +223,7 @@ int main (int argc, char** argv) {
 
   // ros pub and sub
   ros::Publisher imu_pub = nh.advertise<sensor_msgs::Imu>("imu/data", 50);
+  ros::Publisher gps_pub = nh.advertise<sensor_msgs::NavSatFix>("gps/fix", 50);
 
   try {
     serial_port.setPort(port);
@@ -107,29 +249,40 @@ int main (int argc, char** argv) {
   // set looprate
   ros::Rate loop_rate(looprate);
   while(ros::ok()) {
-    if(serial_port.available()>=11){
-      // convert serial string to JY901 data
-      CopeSerialData(serial_port.read(serial_port.available()));
+    // convert serial string to JY901 data
+    CopeSerialData(serial_port.read(200));
 
-      // imu sensor msg pub
-      sensor_msgs::Imu imu_msg;
-      imu_msg.header.stamp = ros::Time::now();
-      imu_msg.header.frame_id = "imu_link";
-      imu_msg.orientation.w = stcOrien.q[0] / 32768.0;
-      imu_msg.orientation.x = stcOrien.q[1] / 32768.0;
-      imu_msg.orientation.y = stcOrien.q[2] / 32768.0;
-      imu_msg.orientation.z = stcOrien.q[3] / 32768.0;
-      imu_msg.orientation_covariance[0] = -1;
-      imu_msg.linear_acceleration.x = (float)stcAcc.a[0] / 32768.0 * 16.0 * 9.8;
-      imu_msg.linear_acceleration.y = (float)stcAcc.a[1] / 32768.0 * 16.0 * 9.8;
-      imu_msg.linear_acceleration.z = (float)stcAcc.a[2] / 32768.0 * 16.0 * 9.8;
-      imu_msg.linear_acceleration_covariance[0] = -1;
-      imu_msg.angular_velocity.x = ((float)stcGyro.w[0] / 32768.0 * 2000) / 180.0 * Pi;
-      imu_msg.angular_velocity.y = ((float)stcGyro.w[1] / 32768.0 * 2000) / 180.0 * Pi;
-      imu_msg.angular_velocity.z = ((float)stcGyro.w[2] / 32768.0 * 2000) / 180.0 * Pi;
-      imu_msg.angular_velocity_covariance[0] = -1;
-      imu_pub.publish(imu_msg);
-    }
+    // imu sensor msg pub
+    sensor_msgs::Imu imu_msg;
+    imu_msg.header.stamp = ros::Time::now();
+    imu_msg.header.frame_id = "imu_link";
+    imu_msg.orientation.w = stcOrien.q[0];
+    imu_msg.orientation.x = stcOrien.q[1];
+    imu_msg.orientation.y = stcOrien.q[2];
+    imu_msg.orientation.z = stcOrien.q[3];
+    imu_msg.orientation_covariance[0] = -1;
+    imu_msg.linear_acceleration.x = stcAcc.a[0];
+    imu_msg.linear_acceleration.y = stcAcc.a[1];
+    imu_msg.linear_acceleration.z = stcAcc.a[2];
+    imu_msg.linear_acceleration_covariance[0] = -1;
+    imu_msg.angular_velocity.x = stcGyro.w[0];
+    imu_msg.angular_velocity.y = (float)stcGyro.w[1];
+    imu_msg.angular_velocity.z = (float)stcGyro.w[2];
+    imu_msg.angular_velocity_covariance[0] = -1;
+    imu_pub.publish(imu_msg);
+
+    // gps msg pub
+    sensor_msgs::NavSatFix nav_sat_fix;
+    nav_sat_fix.header.stamp = ros::Time::now();
+    nav_sat_fix.header.frame_id = "imu_link";
+    nav_sat_fix.status.status = -1;
+    nav_sat_fix.status.service = 1;
+    nav_sat_fix.longitude = stcLonLat.lLon;
+    nav_sat_fix.latitude = stcLonLat.lLat;
+    nav_sat_fix.altitude = stcGPSV.fGPSHeight;
+    nav_sat_fix.position_covariance[0] = -1;
+    nav_sat_fix.position_covariance_type = 0;
+    gps_pub.publish(nav_sat_fix);
 
     ros::spinOnce();
     loop_rate.sleep();
