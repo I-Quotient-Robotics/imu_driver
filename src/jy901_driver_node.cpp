@@ -15,6 +15,8 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/NavSatStatus.h>
 
+#include "tf/LinearMath/Quaternion.h"
+
 #include "JY901.h"
 
 struct STime    stcTime;
@@ -78,12 +80,21 @@ void DoParse() {
       break;
     }
     case 0x53: {
+      // temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
+      // stcAngle.Angle[0] = static_cast<double>(temp_16)/32768.0*180.0;
+      // temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
+      // stcAngle.Angle[1] = static_cast<double>(temp_16)/32768.0*180.0;
+      // temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
+      // stcAngle.Angle[2] = static_cast<double>(temp_16)/32768.0*180.0;
+      // temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
+      // stcAngle.T = static_cast<double>(temp_16)/100.0;
+
       temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
-      stcAngle.Angle[0] = static_cast<double>(temp_16)/32768.0*180.0;
+      stcAngle.Angle[0] = static_cast<double>(temp_16)/32768.0*3.1415926f;
       temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
-      stcAngle.Angle[1] = static_cast<double>(temp_16)/32768.0*180.0;
+      stcAngle.Angle[1] = static_cast<double>(temp_16)/32768.0*3.1415926f;
       temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
-      stcAngle.Angle[2] = static_cast<double>(temp_16)/32768.0*180.0;
+      stcAngle.Angle[2] = static_cast<double>(temp_16)/32768.0*3.1415926f;
       temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
       stcAngle.T = static_cast<double>(temp_16)/100.0;
 
@@ -256,19 +267,22 @@ int main (int argc, char** argv) {
     sensor_msgs::Imu imu_msg;
     imu_msg.header.stamp = ros::Time::now();
     imu_msg.header.frame_id = "imu_link";
-    imu_msg.orientation.w = stcOrien.q[0];
-    imu_msg.orientation.x = stcOrien.q[1];
-    imu_msg.orientation.y = stcOrien.q[2];
-    imu_msg.orientation.z = stcOrien.q[3];
-    imu_msg.orientation_covariance[0] = -1;
+
+    tf::Quaternion quate;
+    quate.setRPY(stcAngle.Angle[0], stcAngle.Angle[1], stcAngle.Angle[2]);
+    imu_msg.orientation.w = quate.w();
+    imu_msg.orientation.x = quate.x();
+    imu_msg.orientation.y = quate.y();
+    imu_msg.orientation.z = quate.z();
+    imu_msg.orientation_covariance[0] = 0;
     imu_msg.linear_acceleration.x = stcAcc.a[0];
     imu_msg.linear_acceleration.y = stcAcc.a[1];
     imu_msg.linear_acceleration.z = stcAcc.a[2];
-    imu_msg.linear_acceleration_covariance[0] = -1;
+    imu_msg.linear_acceleration_covariance[0] = 0;
     imu_msg.angular_velocity.x = stcGyro.w[0];
     imu_msg.angular_velocity.y = (float)stcGyro.w[1];
     imu_msg.angular_velocity.z = (float)stcGyro.w[2];
-    imu_msg.angular_velocity_covariance[0] = -1;
+    imu_msg.angular_velocity_covariance[0] = 0;
     imu_pub.publish(imu_msg);
 
     // gps msg pub
