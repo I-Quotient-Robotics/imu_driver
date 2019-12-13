@@ -80,15 +80,6 @@ void DoParse() {
       break;
     }
     case 0x53: {
-      // temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
-      // stcAngle.Angle[0] = static_cast<double>(temp_16)/32768.0*180.0;
-      // temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
-      // stcAngle.Angle[1] = static_cast<double>(temp_16)/32768.0*180.0;
-      // temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
-      // stcAngle.Angle[2] = static_cast<double>(temp_16)/32768.0*180.0;
-      // temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
-      // stcAngle.T = static_cast<double>(temp_16)/100.0;
-
       temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
       stcAngle.Angle[0] = static_cast<double>(temp_16)/32768.0*3.1415926f;
       temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
@@ -233,13 +224,13 @@ int main (int argc, char** argv) {
   ROS_INFO_STREAM(looprate);
 
   // ros pub and sub
-  ros::Publisher imu_pub = nh.advertise<sensor_msgs::Imu>("imu/data", 50);
-  ros::Publisher gps_pub = nh.advertise<sensor_msgs::NavSatFix>("gps/fix", 50);
+  ros::Publisher imu_pub = nh.advertise<sensor_msgs::Imu>("imu/data", 100);
+  ros::Publisher gps_pub = nh.advertise<sensor_msgs::NavSatFix>("gps/fix", 100);
 
   try {
     serial_port.setPort(port);
     serial_port.setBaudrate(baudrate);
-    serial::Timeout to = serial::Timeout::simpleTimeout(1000);
+    serial::Timeout to = serial::Timeout::simpleTimeout(10);
     serial_port.setTimeout(to);
     serial_port.open();
     serial_port.setRTS(false);
@@ -257,7 +248,6 @@ int main (int argc, char** argv) {
     return -1;
   }
 
-  // set looprate
   ros::Rate loop_rate(looprate);
   while(ros::ok()) {
     // convert serial string to JY901 data
@@ -284,7 +274,7 @@ int main (int argc, char** argv) {
     imu_msg.angular_velocity.z = (float)stcGyro.w[2];
     imu_msg.angular_velocity_covariance[0] = 0;
     imu_pub.publish(imu_msg);
-
+    
     // gps msg pub
     sensor_msgs::NavSatFix nav_sat_fix;
     nav_sat_fix.header.stamp = ros::Time::now();
