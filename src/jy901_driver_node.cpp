@@ -4,8 +4,9 @@
  * 2018.01.23
  */
 
-#define Pi 3.14159265359
+#include <math.h>
 #include <iostream>
+
 #include <ros/ros.h>
 #include <serial/serial.h>
 
@@ -68,11 +69,11 @@ void DoParse() {
     }
     case 0x52: {
       temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
-      stcGyro.w[0] = static_cast<double>(temp_16)/32768.0*2000.0;
+      stcGyro.w[0] = static_cast<double>(temp_16)/32768.0*2000.0*M_PI/180.0;
       temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
-      stcGyro.w[1] = static_cast<double>(temp_16)/32768.0*2000.0;
+      stcGyro.w[1] = static_cast<double>(temp_16)/32768.0*2000.0*M_PI/180.0;
       temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
-      stcGyro.w[2] = static_cast<double>(temp_16)/32768.0*2000.0;
+      stcGyro.w[2] = static_cast<double>(temp_16)/32768.0*2000.0*M_PI/180.0;
       temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
       stcAcc.T = static_cast<double>(temp_16)/100.0;
 
@@ -81,11 +82,11 @@ void DoParse() {
     }
     case 0x53: {
       temp_16 = (static_cast<int16_t>(chrTemp[3])<<8)|chrTemp[2];
-      stcAngle.Angle[0] = static_cast<double>(temp_16)/32768.0*3.1415926f;
+      stcAngle.Angle[0] = static_cast<double>(temp_16)/32768.0*M_PI;
       temp_16 = (static_cast<int16_t>(chrTemp[5])<<8)|chrTemp[4];
-      stcAngle.Angle[1] = static_cast<double>(temp_16)/32768.0*3.1415926f;
+      stcAngle.Angle[1] = static_cast<double>(temp_16)/32768.0*M_PI;
       temp_16 = (static_cast<int16_t>(chrTemp[7])<<8)|chrTemp[6];
-      stcAngle.Angle[2] = static_cast<double>(temp_16)/32768.0*3.1415926f;
+      stcAngle.Angle[2] = static_cast<double>(temp_16)/32768.0*M_PI;
       temp_16 = (static_cast<int16_t>(chrTemp[9])<<8)|chrTemp[8];
       stcAngle.T = static_cast<double>(temp_16)/100.0;
 
@@ -269,9 +270,9 @@ int main (int argc, char** argv) {
     imu_msg.linear_acceleration.y = stcAcc.a[1];
     imu_msg.linear_acceleration.z = stcAcc.a[2];
     imu_msg.linear_acceleration_covariance[0] = 0;
-    imu_msg.angular_velocity.x = stcGyro.w[0];
-    imu_msg.angular_velocity.y = (float)stcGyro.w[1];
-    imu_msg.angular_velocity.z = (float)stcGyro.w[2];
+    imu_msg.angular_velocity.x = static_cast<float>(stcGyro.w[0]);
+    imu_msg.angular_velocity.y = static_cast<float>(stcGyro.w[1]);
+    imu_msg.angular_velocity.z = static_cast<float>(stcGyro.w[2]);
     imu_msg.angular_velocity_covariance[0] = 0;
     imu_pub.publish(imu_msg);
     
