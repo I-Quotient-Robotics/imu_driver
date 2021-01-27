@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="jy901_driver" type="i2c_driver.py" name="witmotion_i2c_node" output="screen" >
+    <param name="bus_id" type="int" value="8" />
+    <param name="address" type="str" value="0x53" />
+    <param name="frame_id" type="str" value="external_imu" />
+    <param name="g" type="double" value="9.80665" />
+  </node>
+</launch>
