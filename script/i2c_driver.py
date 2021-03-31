@@ -73,7 +73,7 @@ class WITMotionI2cDriver:
 
 
 def main():
-    rospy.init_node('combine_node')
+    rospy.init_node('jy901_i2c_node')
 
     driver = WITMotionI2cDriver()
 
