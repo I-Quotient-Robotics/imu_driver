@@ -10,7 +10,7 @@ from sensor_msgs.msg import Imu, MagneticField, NavSatFix
 class WITMotionI2cDriver:
     def __init__(self):
         self.__bus_id = rospy.get_param('~bus_id', 8)
-        self.__address = int(rospy.get_param('~address', '0x53'), 16)
+        self.__address = int(rospy.get_param('~address', '0x50'), 16)
 
         self.__frame_id = rospy.get_param('~frame_id', "imu_frame")
 
